@@ -1,0 +1,108 @@
+package Spawn
+
+import UnitObjEditing
+import public Assets
+
+constant rect array SPAWN_RECTS = [gg_Spawn_L, gg_Spawn_R, gg_Spawn_T, gg_Spawn_B]
+
+tuple ainfo(string name, string icon)
+tuple uinfo(string name, ainfo abil, string model, string icon, string missile)
+
+constant ainfo array abil = [ainfo("Spell","iconpath")]
+constant uinfo array UNIT_INFO = [
+    uinfo("Militia",  abil[0], Units.militia, Icons.bTNMilitia, Abilities.priestMissile),
+    uinfo("Witch",      abil[0], Units.villagerWoman1, Icons.bTNVillagerWoman, Abilities.priestMissile),
+    uinfo("Dart Throwe",abil[0], Units.villagerMan, Icons.bTNVillagerMan, Abilities.harpyMissile),
+    uinfo("Footman",    abil[0], Units.footman1,Icons.bTNFootman, Abilities.priestMissile),
+    uinfo("Mage",       abil[0], Units.humanMage1, Icons.bTNBanditMage, Abilities.priestMissile),
+    uinfo("Bandit",     abil[0], Units.banditSpearThrower,Icons.bTNBanditSpearThrower, Abilities.banditmissile),
+    uinfo("Captain",    abil[0], Units.theCaptain1, Icons.bTNTheCaptain, Abilities.priestMissile),
+    uinfo("Wizard",     abil[0], Units.banditMage1, Icons.bTNBanditMage, Abilities.priestMissile),
+    uinfo("Rogue",      abil[0], Units.bandit1, Icons.bTNBandit, Abilities.axeMissile),
+    uinfo("Knight",     abil[0], Units.knight1, Icons.bTNKnight, Abilities.priestMissile),
+    uinfo("Counter-Mage",abil[0], Units.medivh1, Icons.bTNMedivh, Abilities.priestMissile),
+    uinfo("Ballista",   abil[0], Units.ballista1, Icons.bTNBallista, Abilities.ballistaMissile)
+    ]
+int NUM_OF_TYPES = 12
+int array ENEMY_TYPES
+
+@compiletime function makeUnitTypes()
+    // create new unit based on thunder bolt from mountain king
+    let initu = new UnitDefinition('x001', 'hfoo')
+
+    for i = 0 to NUM_OF_TYPES
+        var id = initu.getNewId()
+        let u = new UnitDefinition(id, 'hfoo')
+        u.setName(UNIT_INFO[i].name)
+        u.setModelFile(UNIT_INFO[i].model)
+        u.setIconGameInterface(UNIT_INFO[i].icon)
+        u.setAttack1ProjectileArt(UNIT_INFO[i].missile)
+
+        u.setAcquisitionRange(20000.0)
+        int utype = i mod 3
+        int rank = i div 3
+
+        var hp = 10
+        var dam = 1
+        var atRate = 1.0
+        var atRange = 100
+        WeaponType wepT = Missile
+        AttackType atT = Normal
+        ArmorType armT = Normal
+        int gold = R2I(3*Pow(5,rank+1.0))
+        int cost = gold*5
+        int points = 5*rank
+        
+        switch utype
+            case 0 //Melee
+                hp = R2I(6.0*Pow(5,1.0-rank)*Pow(7,rank-1.0)/5.0)*5
+                dam = R2I(Pow(5,1.0-rank)*Pow(3,rank-0.0))
+                wepT = Normal
+            case 1 //Spell
+                hp = R2I(4.0*Pow(5,1.0-rank)*Pow(7,rank+0.0)/5.0)*5
+                dam = R2I(Pow(4,1.0+rank)*Pow(5,-rank-0.0))
+                atRate = 2.0
+                atT = Magic
+                armT = Unarmored
+            case 2 //Ranged
+                hp = R2I(Pow(5,3.0-rank)*Pow(13/2.0,rank-0.0)/5.0)*5
+                dam = R2I(Pow(5,0.0-rank)*Pow(3,2*rank+1.0)*Pow(2,1.0-rank))
+                atRate = 1.5
+                atT = Pierce
+                armT = Small
+        u.setHitPointsMaximumBase(hp)
+        u.setAttack1DamageBase(dam) 
+        u.setAttack1CooldownTime(atRate)
+        u.setAttack1Range(atRange) 
+        u.setAttack1WeaponType(wepT)
+        u.setAttack1AttackType(atT)
+        u.setAttack1DamageNumberofDice(1)
+        u.setAttack1DamageSidesperDie(1)
+        u.setArmorType(armT)
+        u.setGoldBountyAwardedBase(gold)
+        u.setGoldCost(cost)
+        u.setLumberCost(0)
+
+        u.setFoodCost(rank)
+        u.setLevel(rank)
+        u.setStockMaximum(3)
+        
+        ENEMY_TYPES[i] = id
+
+int diffPower = 0
+constant player ENEMY = playerFromIndex(9)
+function spawnUnit()
+    var range = 12
+    var numOfDice = 2 
+    var sum = 0
+
+    var i = 0 //The index of the unit to be created in udg_Unit_Types
+    
+    for x = 0 to numOfDice
+        sum = sum + GetRandomInt(0,range)
+
+
+    i = min( max(sum div(numOfDice div 2)-range + diffPower, 0), NUM_OF_TYPES)
+
+    createUnit(ENEMY, ENEMY_TYPES[i], SPAWN_RECTS[GetRandomInt(0, 3)].randomPoint(),angle(0.0))   
+
